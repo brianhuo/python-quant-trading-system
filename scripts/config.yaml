@@ -1,0 +1,63 @@
+# 交易系统配置文件 - 主配置
+# ==========================================
+
+# 基础交易配置
+trading:
+  ticker: "AAPL"
+  exchange: "ARCA"
+  currency: "USD"
+  initial_capital: 100000.0
+  benchmark: "SPY"
+
+# 数据配置
+data:
+  timeframe: "30min"  # 数据时间框架
+  history_years: 5    # 历史数据年数
+  train_days: 1260    # 训练数据天数
+  volatility_window: 60
+  trade_frequency_minutes: 60
+
+# 模型配置
+model:
+  update_interval_days: 3
+  min_samples: 50
+  rolling_window: 98
+  feature_selection_method: "shap_dynamic"
+  enable_model_monitor: true
+  walkforward_test_window: 120
+  walkforward_step: 120
+
+# 风险管理
+risk_management:
+  risk_per_trade: 0.02        # 每笔交易风险比例
+  max_trade_percentage: 0.1   # 最大单笔交易占比
+  stop_loss_multiplier: 1.8   # 止损倍数
+  take_profit_multiplier: 2.5 # 止盈倍数
+  max_drawdown: 0.1           # 最大回撤
+  daily_loss_limit: -0.03     # 日损失限制
+
+# 交易成本
+costs:
+  transaction_cost: 0.0005    # 交易手续费
+  slippage: 0.001            # 滑点成本
+
+# 自适应阈值配置
+adaptive_threshold:
+  initial_threshold: 0.75
+  transition_covariance: 0.01
+  observation_covariance: 1.0
+  confirm_signal_k: 3
+  atr_threshold: 0.015
+
+# 系统控制
+system:
+  live_trading: false
+  max_retries: 5
+  enable_crash_recovery: true
+  log_level: "INFO"
+  use_best_params: true
+
+# API配置（敏感信息应在.env文件中）
+api:
+  twelve_data_api_key: null  # 将从环境变量读取
+

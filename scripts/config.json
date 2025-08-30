@@ -1,0 +1,47 @@
+{
+  "TICKER": "AAPL",
+  "EXCHANGE": "ARCA",
+  "CURRENCY": "USD",
+  "INIT_CAPITAL": 100000,
+  
+  "DATA_INTERVAL": "30min",
+  "HISTORY_YEARS": 5,
+  "TRAIN_DAYS": 1260,
+  "VOLATILITY_WINDOW": 60,
+  "TRADE_FREE_MIN": 60,
+  
+  "MODEL_UPDATE_INTERVAL_DAYS": 3,
+  "MIN_SAMPLES": 98,
+  "ROLLING_WINDOW": 98,
+  "FEATURE_SELECTION_METHOD": "shap_dynamic",
+  
+  "RISK_PER_TRADE": 0.02,
+  "MAX_TRADE_PCT": 0.1,
+  "STOPLOSS_MULTIPLIER": 1.0,
+  "TAKEPROFIT_MULTIPLIER": 3.0,
+  "MAX_DRAWDOWN": 0.1,
+  "DAILY_LOSS_LIMIT": -0.03,
+  
+  "TRANSACTION_COST": 0.0005,
+  "SLIPPAGE": 0.001,
+  
+  "RISK_FREE_RATE": 0.02,
+  
+  "ADAPTIVE_THRESHOLD_INIT": 0.75,
+  "ADAPTIVE_THRESHOLD_TRANS_COV": 0.01,
+  "ADAPTIVE_THRESHOLD_OBS_COV": 1.0,
+  "CONFIRM_SIGNAL_K": 1,
+  
+  "DYNAMIC_THRESHOLD": false,
+  "ATR_FILTER": true,
+  "ATR_THRESHOLD": 0.5,
+  
+
+  "window_size": 60,
+  "feature_columns": ["close", "volume", "rsi", "macd", "atr"],
+  "stop_method": "atr",
+  "atr_multiplier": 1.5,
+  "risk_per_trade": 0.01,
+  "max_position_pct": 0.3,
+  "volatility_threshold": 0.03
+}

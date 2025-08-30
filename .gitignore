@@ -1,0 +1,121 @@
+# Python 字节码和缓存文件
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 分发/打包
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# 虚拟环境目录
+venv/
+.venv/
+env/
+.env/
+general_env/
+ibkr_env/
+scripts/ibkr_env/
+.whisper_env/
+
+# 环境变量文件（包含敏感信息）
+.env
+.env.local
+.env.*.local
+
+# 日志文件
+*.log
+logs/
+scripts/logs/
+
+# 数据缓存文件
+cache/
+scripts/cache/
+*.csv
+*.h5
+*.feather
+*.parquet
+
+# 机器学习模型和训练信息
+catboost_info/
+scripts/catboost_info/
+*.pkl
+*.joblib
+*.model
+
+# 图表和报告文件
+log_charts/
+scripts/log_charts/
+*.png
+*.jpg
+*.pdf
+*.html
+
+# IDE和编辑器文件
+.cursor/
+*.cursorworkspace
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 系统文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# 临时文件
+*.tmp
+*.temp
+
+# 配置文件备份
+*.bak
+*.backup
+
+# 测试覆盖率报告
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# 文档构建
+docs/_build/
+
+# PyBuilder
+target/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json

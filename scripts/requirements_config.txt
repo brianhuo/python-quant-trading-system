@@ -1,0 +1,5 @@
+# 配置加载器依赖包
+pyyaml>=6.0
+cryptography>=3.4.8
+python-dotenv>=0.19.0
+
