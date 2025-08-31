@@ -47,3 +47,5 @@ if [ -d "log_charts" ]; then
 fi
 
 echo "✨ 分析工具运行完成！"
+
+

@@ -1,20 +1,74 @@
 import numpy as np
 import pandas as pd
-from numba import njit
-from ta.momentum import RSIIndicator
-from ta.volatility import BollingerBands, AverageTrueRange
-from ta.trend import MACD
-from sklearn.preprocessing import PolynomialFeatures, RobustScaler
-from sklearn.linear_model import Lasso
-from sklearn.feature_selection import SelectFromModel
-from sklearn.impute import SimpleImputer
+try:
+    from numba import njit
+    NUMBA_AVAILABLE = True
+except ImportError:
+    NUMBA_AVAILABLE = False
+    def njit(func):
+        return func
+
+try:
+    from ta.momentum import RSIIndicator
+    from ta.volatility import BollingerBands, AverageTrueRange
+    from ta.trend import MACD
+    TA_AVAILABLE = True
+except ImportError:
+    TA_AVAILABLE = False
+    # 创建dummy类避免导入错误
+    class RSIIndicator:
+        def __init__(self, *args, **kwargs): pass
+    class BollingerBands:
+        def __init__(self, *args, **kwargs): pass
+        def bollinger_hband(self): return pd.Series()
+        def bollinger_lband(self): return pd.Series()
+    class AverageTrueRange:
+        def __init__(self, *args, **kwargs): pass
+        def average_true_range(self): return pd.Series()
+    class MACD:
+        def __init__(self, *args, **kwargs): pass
+        def macd_diff(self): return pd.Series()
+
+try:
+    from sklearn.preprocessing import PolynomialFeatures, RobustScaler
+    from sklearn.linear_model import Lasso
+    from sklearn.feature_selection import SelectFromModel
+    from sklearn.impute import SimpleImputer
+    SKLEARN_AVAILABLE = True
+except ImportError:
+    SKLEARN_AVAILABLE = False
+    # 创建简化的替代实现
+    class PolynomialFeatures:
+        def __init__(self, *args, **kwargs): pass
+        def fit_transform(self, X): return X
+        def get_feature_names_out(self, features): return features
+    class SimpleImputer:
+        def __init__(self, *args, **kwargs): pass
+        def fit_transform(self, X): return X
+    class Lasso:
+        def __init__(self, *args, **kwargs): pass
+        def fit(self, X, y): pass
+    class SelectFromModel:
+        def __init__(self, *args, **kwargs): pass
+        def get_support(self): return [True] * 10
+
 import datetime
 import os
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    def load_dotenv(): pass
+
 import yaml
 import re
+import time
+from functools import lru_cache
+from typing import Union, Dict, Any, Optional, Tuple
+import warnings
+warnings.filterwarnings('ignore')
 
-load_dotenv()  # 从 .env 文件加载环境变量
+# load_dotenv() 已在上面调用
 
 @njit
 def calculate_slope(y):
@@ -45,6 +99,19 @@ class EnhancedFeatureEngineer:
         self.volatility_lookback = 30
         self.parameter_tuner = parameter_tuner
         self.protected_patterns = self.load_protected_patterns()
+        
+        # 缓存机制
+        self.feature_cache = {}
+        self.last_data_hash = None
+        self.realtime_state = {}
+        
+        # 性能监控
+        self.performance_stats = {
+            'batch_times': [],
+            'realtime_times': [],
+            'cache_hits': 0,
+            'cache_misses': 0
+        }
 
     def load_protected_patterns(self, config_path='feature_config.yaml'):
         """从 YAML 配置文件加载受保护的特征模式并添加基础受保护列"""
@@ -280,11 +347,44 @@ class EnhancedFeatureEngineer:
 
         # 多项式特征生成
         valid_features = [f for f in self.base_features if f in df_clean.columns]
-        imputer = SimpleImputer(strategy='constant', fill_value=0)
-        base_features_clean = imputer.fit_transform(df_clean[valid_features])
-        X_poly = self.poly.fit_transform(base_features_clean)
-        poly_feature_names = [f'poly_{name.replace(" ", "_")}' for name in self.poly.get_feature_names_out(valid_features)]
-        df_poly = pd.DataFrame(X_poly, columns=poly_feature_names, index=df_clean.index)
+        
+        # 确保所有特征都存在且无NaN值
+        for feature in valid_features:
+            if feature not in df_clean.columns:
+                df_clean[feature] = 0.0
+            else:
+                # 填充NaN值
+                df_clean[feature] = df_clean[feature].fillna(0.0)
+                # 处理无穷值
+                df_clean[feature] = df_clean[feature].replace([np.inf, -np.inf], 0.0)
+        
+        # 提取特征数据并确保数值类型
+        feature_data = df_clean[valid_features].astype(float)
+        
+        try:
+            if SKLEARN_AVAILABLE and len(feature_data) > 0:
+                # 应用多项式变换
+                X_poly = self.poly.fit_transform(feature_data.values)
+                poly_feature_names = [f'poly_{name.replace(" ", "_")}' for name in self.poly.get_feature_names_out(valid_features)]
+                df_poly = pd.DataFrame(X_poly, columns=poly_feature_names, index=df_clean.index)
+                
+                # 再次清理多项式特征中的NaN和无穷值
+                df_poly = df_poly.replace([np.inf, -np.inf], np.nan).fillna(0.0)
+            else:
+                # 如果sklearn不可用，创建简化版本
+                df_poly = pd.DataFrame(index=df_clean.index)
+                for feature in valid_features:
+                    df_poly[f'poly_{feature}'] = df_clean[feature] ** 2
+                df_poly = df_poly.fillna(0.0)
+        except Exception as e:
+            if self.logger:
+                self.logger.warning(f"多项式特征生成失败，使用简化版本: {str(e)}")
+            # 创建简化的多项式特征
+            df_poly = pd.DataFrame(index=df_clean.index)
+            for feature in valid_features:
+                if feature in df_clean.columns:
+                    df_poly[f'poly_{feature}'] = df_clean[feature].fillna(0) ** 2
+            df_poly = df_poly.fillna(0.0)
 
         # Lasso 特征选择
         all_features = df_poly.columns.tolist()
@@ -353,6 +453,240 @@ class EnhancedFeatureEngineer:
         if self.logger:
             self.logger.info(f"最终特征矩阵形状: {df_final.shape}, 列: {df_final.columns.tolist()}")
         return df_final
+
+    def create_features(self, data: pd.DataFrame, mode: str = 'batch') -> pd.DataFrame:
+        """
+        优化的特征生成入口方法
+        
+        Parameters:
+        -----------
+        data : pd.DataFrame
+            输入数据（清洗后的数据）
+        mode : str
+            处理模式 - 'batch' 用于历史数据完整计算，'realtime' 用于实时增量计算
+            
+        Returns:
+        --------
+        pd.DataFrame
+            特征数据集
+        """
+        start_time = time.time()
+        
+        try:
+            if mode == 'realtime':
+                result = self._fast_features(data)
+                self.performance_stats['realtime_times'].append(time.time() - start_time)
+            else:
+                result = self._full_features(data)
+                self.performance_stats['batch_times'].append(time.time() - start_time)
+            
+            # 记录性能统计
+            if self.logger:
+                avg_time = (self.performance_stats[f'{mode}_times'][-1] 
+                           if self.performance_stats[f'{mode}_times'] else 0)
+                self.logger.info(f"{mode}模式特征生成完成，耗时: {avg_time:.3f}秒")
+            
+            return result
+            
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"特征生成失败 ({mode}模式): {str(e)}")
+            return pd.DataFrame()
+    
+    def _fast_features(self, data: pd.DataFrame) -> pd.DataFrame:
+        """实时模式：优化计算实时特征"""
+        if data.empty:
+            return pd.DataFrame()
+        
+        # 检查缓存
+        data_hash = self._get_data_hash(data)
+        cache_key = f"realtime_{data_hash}"
+        
+        if cache_key in self.feature_cache:
+            self.performance_stats['cache_hits'] += 1
+            if self.logger:
+                self.logger.debug("使用缓存的实时特征")
+            return self.feature_cache[cache_key].copy()
+        
+        self.performance_stats['cache_misses'] += 1
+        
+        # 智能窗口大小选择
+        if len(data) <= 50:
+            # 小数据集，使用全部数据
+            window_size = len(data)
+        elif len(data) <= 200:
+            # 中等数据集，使用大部分数据
+            window_size = min(80, len(data))
+        else:
+            # 大数据集，只使用最新数据
+            window_size = min(60, len(data))
+        
+        recent_data = data.tail(window_size).copy()
+        
+        # 快速特征计算（简化版本）
+        features = self._calculate_fast_features(recent_data)
+        
+        # 缓存结果（限制缓存大小）
+        if len(self.feature_cache) > 10:  # 限制缓存条目数量
+            # 删除最旧的缓存项
+            oldest_key = next(iter(self.feature_cache))
+            del self.feature_cache[oldest_key]
+        
+        self.feature_cache[cache_key] = features
+        self.last_data_hash = data_hash
+        
+        return features
+    
+    def _full_features(self, data: pd.DataFrame) -> pd.DataFrame:
+        """批处理模式：完整历史特征计算"""
+        if data.empty:
+            return pd.DataFrame()
+        
+        # 检查缓存
+        data_hash = self._get_data_hash(data)
+        if data_hash == self.last_data_hash and 'batch_features' in self.feature_cache:
+            self.performance_stats['cache_hits'] += 1
+            if self.logger:
+                self.logger.debug("使用缓存的批处理特征")
+            return self.feature_cache['batch_features'].copy()
+        
+        self.performance_stats['cache_misses'] += 1
+        
+        # 完整特征计算
+        features = self.build_features(data, is_training=True)
+        
+        # 缓存结果
+        self.feature_cache['batch_features'] = features
+        self.last_data_hash = data_hash
+        
+        return features
+    
+    def _get_data_hash(self, data: pd.DataFrame) -> str:
+        """计算数据哈希用于缓存检查"""
+        try:
+            # 使用数据形状、最后几行数据和时间戳的组合作为哈希
+            recent_data = data.tail(5) if len(data) > 5 else data
+            shape_str = f"{data.shape[0]}x{data.shape[1]}"
+            
+            # 获取最后几行的关键数据
+            if not recent_data.empty and 'close' in recent_data.columns:
+                last_values = recent_data['close'].values[-3:] if len(recent_data) >= 3 else recent_data['close'].values
+                values_str = '_'.join([f"{v:.4f}" for v in last_values])
+                return f"{shape_str}_{values_str}"
+            else:
+                return f"{shape_str}_{time.time()}"
+        except Exception:
+            return str(time.time())  # 如果哈希失败，使用时间戳
+    
+
+    
+    def _calculate_fast_features(self, data: pd.DataFrame) -> pd.DataFrame:
+        """快速特征计算（简化版本）"""
+        try:
+            df = data.copy()
+            
+            # 只计算最关键的特征，使用更小的窗口
+            df['rsi'] = self._fast_rsi(df['close'], window=7)  # 减小窗口
+            df['macd_hist'] = self._fast_macd(df['close'])
+            df['atr'] = self._fast_atr(df['high'], df['low'], df['close'], window=7)
+            df['ema_short'] = df['close'].ewm(span=5).mean()  # 更快的EMA
+            
+            # 简单的波动率和成交量指标
+            df['volume_ma_ratio'] = df['volume'] / df['volume'].rolling(5, min_periods=1).mean()
+            df['price_change'] = df['close'].pct_change()
+            
+            # 市场状态简化版本
+            df['market_state'] = self._simple_market_state(df['close'])
+            
+            # 填充缺失值
+            df = df.ffill().fillna(0)
+            
+            return df.tail(1)  # 只返回最新行
+            
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"快速特征计算失败: {str(e)}")
+            return pd.DataFrame()
+    
+    def _calculate_full_features(self, data: pd.DataFrame) -> pd.DataFrame:
+        """完整特征计算"""
+        return self.build_features(data, is_training=True)
+    
+    def _fast_rsi(self, prices: pd.Series, window: int = 14) -> pd.Series:
+        """快速RSI计算"""
+        try:
+            delta = prices.diff()
+            gain = delta.where(delta > 0, 0)
+            loss = -delta.where(delta < 0, 0)
+            
+            avg_gain = gain.rolling(window=window, min_periods=1).mean()
+            avg_loss = loss.rolling(window=window, min_periods=1).mean()
+            
+            rs = avg_gain / avg_loss.replace(0, 1e-10)
+            rsi = 100 - (100 / (1 + rs))
+            return rsi.fillna(50)
+        except Exception:
+            return pd.Series(50, index=prices.index)
+    
+    def _fast_macd(self, prices: pd.Series, fast: int = 8, slow: int = 17) -> pd.Series:
+        """快速MACD计算"""
+        try:
+            ema_fast = prices.ewm(span=fast).mean()
+            ema_slow = prices.ewm(span=slow).mean()
+            return ema_fast - ema_slow
+        except Exception:
+            return pd.Series(0, index=prices.index)
+    
+    def _fast_atr(self, high: pd.Series, low: pd.Series, close: pd.Series, window: int = 14) -> pd.Series:
+        """快速ATR计算"""
+        try:
+            tr1 = high - low
+            tr2 = np.abs(high - close.shift(1))
+            tr3 = np.abs(low - close.shift(1))
+            tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+            return tr.rolling(window, min_periods=1).mean()
+        except Exception:
+            return pd.Series(0, index=high.index)
+    
+    def _simple_market_state(self, prices: pd.Series) -> pd.Series:
+        """简化的市场状态计算"""
+        try:
+            sma_short = prices.rolling(5, min_periods=1).mean()
+            sma_long = prices.rolling(20, min_periods=1).mean()
+            
+            conditions = [
+                sma_short > sma_long * 1.002,  # 上涨趋势
+                sma_short < sma_long * 0.998   # 下跌趋势
+            ]
+            choices = [2, 0]  # 2=上涨, 0=下跌, 1=横盘
+            
+            return pd.Series(np.select(conditions, choices, default=1), index=prices.index)
+        except Exception:
+            return pd.Series(1, index=prices.index)
+    
+    def get_performance_stats(self) -> Dict[str, Any]:
+        """获取性能统计信息"""
+        stats = self.performance_stats.copy()
+        
+        if stats['batch_times']:
+            stats['avg_batch_time'] = np.mean(stats['batch_times'])
+            stats['max_batch_time'] = np.max(stats['batch_times'])
+        
+        if stats['realtime_times']:
+            stats['avg_realtime_time'] = np.mean(stats['realtime_times'])
+            stats['max_realtime_time'] = np.max(stats['realtime_times'])
+        
+        stats['cache_hit_rate'] = (stats['cache_hits'] / 
+                                  max(stats['cache_hits'] + stats['cache_misses'], 1))
+        
+        return stats
+    
+    def clear_cache(self):
+        """清除缓存"""
+        self.feature_cache.clear()
+        self.last_data_hash = None
+        if self.logger:
+            self.logger.info("特征缓存已清除")
 
 if __name__ == "__main__":
     from logger_setup import setup_logging

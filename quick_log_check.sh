@@ -41,3 +41,5 @@ echo "🔍 可用的分析命令:"
 echo "  1. 从根目录: ./analyze_logs.sh"
 echo "  2. 手动分析: cd scripts && python3 log_analyzer.py"
 echo "  3. 重新生成日志: cd scripts && python3 logger_usage_examples.py"
+
+

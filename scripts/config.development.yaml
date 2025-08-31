@@ -16,6 +16,7 @@ data:
   train_days: 500   # 减少训练数据以加快开发
   volatility_window: 30
   trade_frequency_minutes: 60
+  use_mock_data: true  # 开发环境使用模拟数据以节省API费用
 
 # 模型配置
 model:

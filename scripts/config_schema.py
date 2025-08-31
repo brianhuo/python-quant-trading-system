@@ -65,6 +65,7 @@ class DataConfig:
     train_days: int
     volatility_window: int
     trade_frequency_minutes: int
+    use_mock_data: bool = False  # 是否使用模拟数据
     
     def __post_init__(self):
         self._validate()
@@ -248,6 +249,7 @@ class TradingSystemConfig:
             "TRAIN_DAYS": self.data.train_days,
             "VOLATILITY_WINDOW": self.data.volatility_window,
             "TRADE_FREQ_MIN": self.data.trade_frequency_minutes,
+            "USE_MOCK_DATA": self.data.use_mock_data,
             
             # Model
             "MODEL_UPDATE_INTERVAL_DAYS": self.model.update_interval_days,
