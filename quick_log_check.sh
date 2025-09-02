@@ -43,3 +43,5 @@ echo "  2. 手动分析: cd scripts && python3 log_analyzer.py"
 echo "  3. 重新生成日志: cd scripts && python3 logger_usage_examples.py"
 
 
+
+
