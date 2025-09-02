@@ -1,0 +1,53 @@
+
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>日志分析报告</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                .metric { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 5px; }
+                .anomaly { background: #ffe6e6; padding: 10px; margin: 10px 0; border-radius: 5px; }
+                .good { background: #e6ffe6; padding: 10px; margin: 10px 0; border-radius: 5px; }
+                table { border-collapse: collapse; width: 100%; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; }
+            </style>
+        </head>
+        <body>
+            <h1>日志分析报告</h1>
+            <p>生成时间: 2025-08-29 15:57:05</p>
+            
+            <h2>基础指标</h2>
+            <div class="metric">
+                <h3>总体统计</h3>
+                <p>总日志条数: 26</p>
+                <p>时间范围: 2025-08-29T07:39:32.176289+00:00 至 2025-08-29T07:39:34.283901+00:00</p>
+                <p>持续时长: 0.00 小时</p>
+            </div>
+            
+            <div class="metric">
+                <h3>日志级别分布</h3>
+                <table>
+                    <tr><th>级别</th><th>数量</th><th>百分比</th></tr>
+        <tr><td>INFO</td><td>18</td><td>69.2%</td></tr><tr><td>ERROR</td><td>6</td><td>23.1%</td></tr><tr><td>WARNING</td><td>2</td><td>7.7%</td></tr>
+                </table>
+            </div>
+            
+            <div class="metric">
+                <h3>性能指标</h3>
+        
+                <p>平均执行时间: 0.086s</p>
+                <p>最大执行时间: 0.204s</p>
+                <p>慢操作数量: 0</p>
+            </div>
+            
+            <h2>异常检测</h2>
+        <div class="good">✅ 未检测到异常模式</div>
+            <h2>模块活动排行</h2>
+            <table>
+                <tr><th>模块</th><th>日志数量</th></tr>
+        <tr><td>logger_usage_examples</td><td>14</td></tr><tr><td>logger_config_integration</td><td>8</td></tr><tr><td>enhanced_logger_setup</td><td>4</td></tr>
+            </table>
+        </body>
+        </html>
+        
