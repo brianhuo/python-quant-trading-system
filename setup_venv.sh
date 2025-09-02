@@ -92,3 +92,4 @@ EOF
 
 chmod +x "${PROJECT_DIR}/activate_env.sh"
 echo "✨ 创建了快捷激活脚本: ./activate_env.sh"
+
