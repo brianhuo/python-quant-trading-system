@@ -106,128 +106,25 @@ class Backtester:
     # 定义全局保护特征列表
     PROTECTED_FEATURES = ['close', 'open', 'high', 'low', 'volume', 'market_state']
    
-    # 金字塔验证器类 - 必须定义在 __init__ 之前
-    class PyramidValidator:
-        def __init__(self, config, logger):
-            self.config = config.get('pyramid_validation', {})
-            self.logger = logger
-            self.tech_validator = self.DynamicTechValidator(
-                self.config.get('tech_weights', {'trend': 0.4, 'volatility': 0.3, 'volume': 0.3})
-            )
-            self.market_checker = self.MarketConditionChecker()
-          
-            # 基础阈值配置
-            self.base_thresholds = {
-                'bull': self.config.get('bull_threshold', 0.65),
-                'bear': self.config.get('bear_threshold', 0.60)
-            }
-          
-        class DynamicTechValidator:
-            def __init__(self, weights):
-                self.weights = weights
-               
-            def calculate_score(self, row):
-                """容错式技术指标验证"""
-                scores = {'trend': 0, 'volatility': 0, 'volume': 0}
-               
-                # 趋势验证 (SMA50, MACD, RSI)
-                try:
-                    trend_score = 0
-                    if 'close' in row and 'SMA50' in row:
-                        trend_score += 0.3 * int(row['close'] > row['SMA50'])
-                    if 'MACD' in row and 'MACD_signal' in row:
-                        trend_score += 0.4 * int(row['MACD'] > row['MACD_signal'])
-                    if 'RSI' in row:
-                        rsi_val = row['RSI']
-                        rsi_score = 1 if 30 < rsi_val < 70 else 0.5 if (20 < rsi_val < 80) else 0
-                        trend_score += 0.3 * rsi_score
-                    scores['trend'] = min(max(trend_score, 0), 1)
-                except Exception as e:
-                    pass
-               
-                # 波动率验证 (波动率, ATR)
-                try:
-                    vol_score = 0
-                    if 'volatility' in row:
-                        vol_score += 0.5 * int(row['volatility'] < 0.05)
-                    if 'ATR' in row and 'ATR_20ma' in row:
-                        vol_score += 0.5 * int(row['ATR'] < row['ATR_20ma'])
-                    scores['volatility'] = min(max(vol_score, 0), 1)
-                except:
-                    pass
-               
-                # 量能验证 (成交量, OBV)
-                try:
-                    volume_score = 0
-                    if 'volume' in row and 'VMA20' in row:
-                        volume_score += 0.6 * int(row['volume'] > 1.2 * row['VMA20'])
-                    if 'OBV' in row and 'OBV_5ma' in row:
-                        volume_score += 0.4 * int(row['OBV'] > row['OBV_5ma'])
-                    scores['volume'] = min(max(volume_score, 0), 1)
-                except:
-                    pass
-               
-                # 加权总分
-                total_score = sum(scores[cat] * self.weights[cat] for cat in scores)
-                return min(max(total_score, 0), 1)
-       
-        class MarketConditionChecker:
-            def check(self, row, ml_signal):
-                """市场条件硬过滤"""
-                # 动态计算VIX代理
-                vix_value = row.get('VIX')
-                if vix_value is None and 'volatility' in row:
-                    vix_value = 100 * row['volatility'] * np.sqrt(252)
-               
-                # 1. 恐慌市场禁空
-                if ml_signal == 'BEAR' and vix_value > 35:
-                    return False
-               
-                # 2. 异常波动禁交易
-                if 'volatility' in row and row['volatility'] > 0.08:
-                    return False
-               
-                # 新增规则：
-                # 3. 流动性不足时禁止交易
-                if 'volume' in row and row['volume'] < 1e6: # 交易量低于100万股
-                    return False
-                  
-                # 4. 重大事件期间禁止交易
-                if 'event_risk' in row and row['event_risk'] > 0.8:
-                    return False
-                  
-                # 5. 开盘/收盘时段限制
-                hour = row.name.hour
-                if hour in [9, 16] and row['volatility'] > 0.04: # 开盘/收盘波动大时
-                    return False
-                  
-                return True
-       
-        def validate_signal(self, row, ml_signal, ml_confidence):
-            """三层金字塔验证流程"""
-            # 1. 市场条件硬过滤
-            if not self.market_checker.check(row, ml_signal):
-                return 'HOLD'
-           
-            # 2. 技术指标验证
-            tech_score = self.tech_validator.calculate_score(row)
-           
-            # 3. 概率融合决策
-            bull_thresh = self.base_thresholds['bull']
-            bear_thresh = self.base_thresholds['bear']
-           
-            # 贝叶斯融合公式简化版
-            fused_score = ml_confidence * 0.7 + tech_score * 0.3
-           
-            # 决策逻辑
-            if ml_signal == 'BULL' and fused_score > bull_thresh:
-                return 'BUY'
-            elif ml_signal == 'BEAR' and fused_score > bear_thresh:
-                return 'SHORT'
-            elif ml_signal == 'BULL' and fused_score <= bull_thresh:
-                return 'HOLD' # 多头信号但置信度不足
-            elif ml_signal == 'BEAR' and fused_score <= bear_thresh:
-                return 'HOLD' # 空头信号但置信度不足
+    # 简化的信号验证器
+    def validate_signal(self, row, prediction):
+        """简化的信号验证逻辑"""
+        # 基础风险检查
+        volatility = row.get('volatility', 0)
+        if volatility > 0.08:  # 波动率过高时暂停交易
+            return 'HOLD'
+            
+        # 流动性检查
+        volume = row.get('volume', 0)
+        if volume < 1e6:  # 成交量过低时暂停交易
+            return 'HOLD'
+            
+        # 根据预测生成信号
+        if prediction == 2:  # 看涨
+            return 'BUY'
+        elif prediction == 0:  # 看跌
+            return 'SHORT'
+        else:  # 中性
             return 'HOLD'
 
     def __init__(self, model_path, config_path, feature_path, timeframe='30min', logger=None):
@@ -266,11 +163,8 @@ class Backtester:
         self.total_commission_cost = 0
         self.commission_rate = 0.0005 # 统一佣金率
        
-        # 加载金字塔验证配置
-        self.pyramid_validator = self.PyramidValidator(self.config, self.logger) # 使用 self.PyramidValidator
-      
-        # 金字塔验证模式开关
-        self.pyramid_mode = self.config.get('pyramid_mode', False)
+        # 简化的配置
+        self.risk_threshold = self.config.get('risk_threshold', 0.08)
    
     # ... 类的其他方法保持不变 ...
 
@@ -499,46 +393,15 @@ class Backtester:
                     except:
                         raw_features['macd_hist'] = 0
                         self.logger.error("无法计算MACD特征，使用默认值0")
-            # 确保包含金字塔验证所需的技术指标
-            tech_indicators = ['SMA50', 'MACD', 'MACD_signal', 'RSI', 'ATR', 'ATR_20ma', 'VMA20', 'OBV', 'OBV_5ma']
-           
-            for indicator in tech_indicators:
-                if indicator not in raw_features.columns:
-                    # 精简版指标计算
-                    if indicator == 'SMA50' and 'close' in raw_features:
-                        raw_features['SMA50'] = raw_features['close'].rolling(50).mean().ffill()
-                    elif indicator == 'MACD' and 'close' in raw_features:
-                        ema12 = raw_features['close'].ewm(span=12).mean()
-                        ema26 = raw_features['close'].ewm(span=26).mean()
-                        raw_features['MACD'] = ema12 - ema26
-                    elif indicator == 'MACD_signal' and 'MACD' in raw_features:
-                        raw_features['MACD_signal'] = raw_features['MACD'].ewm(span=9).mean()
-                    elif indicator == 'RSI' and 'close' in raw_features:
-                        delta = raw_features['close'].diff()
-                        gain = (delta.where(delta > 0, 0)).rolling(14).mean()
-                        loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
-                        rs = gain / loss
-                        raw_features['RSI'] = 100 - (100 / (1 + rs))
-                    elif indicator == 'ATR' and all(col in raw_features for col in ['high', 'low', 'close']):
-                        high = raw_features['high'].fillna(method='ffill')
-                        low = raw_features['low'].fillna(method='ffill')
-                        close = raw_features['close'].fillna(method='ffill').shift().fillna(method='bfill')
-                       
-                        high_low = high - low
-                        high_close = np.abs(high - close)
-                        low_close = np.abs(low - close)
-                       
-                        tr = np.max(np.array([high_low, high_close, low_close]).T, axis=1)
-                        raw_features['ATR'] = pd.Series(tr).rolling(14).mean().fillna(method='bfill')
-                    elif indicator == 'ATR_20ma' and 'ATR' in raw_features:
-                        raw_features['ATR_20ma'] = raw_features['ATR'].rolling(20).mean()
-                    elif indicator == 'VMA20' and 'volume' in raw_features:
-                        raw_features['VMA20'] = raw_features['volume'].rolling(20).mean()
-                    elif indicator == 'OBV' and 'volume' in raw_features and 'close' in raw_features:
-                        obv = (np.sign(raw_features['close'].diff()) * raw_features['volume'])
-                        raw_features['OBV'] = obv.cumsum()
-                    elif indicator == 'OBV_5ma' and 'OBV' in raw_features:
-                        raw_features['OBV_5ma'] = raw_features['OBV'].rolling(5).mean()
+            # 简化技术指标计算 - 只保留必要的RSI和ATR
+            if 'RSI' not in raw_features.columns and 'close' in raw_features.columns:
+                self.logger.info("计算RSI指标")
+                delta = raw_features['close'].diff()
+                gain = (delta.where(delta > 0, 0)).rolling(14).mean()
+                loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+                rs = gain / loss
+                raw_features['RSI'] = 100 - (100 / (1 + rs))
+                raw_features['RSI'] = raw_features['RSI'].fillna(50)  # 用中性值填充
             numeric_features = raw_features.select_dtypes(include=np.number)
             corr_matrix = numeric_features.corr().abs()
             upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
@@ -582,16 +445,15 @@ class Backtester:
             skipped = 0
             for i in range(total_windows):
                 window = features.iloc[i:i + self.window_size]
-                num_values = window.select_dtypes(include=np.number).values
-                if not np.isfinite(num_values).all():
+                try:
+                    window_values = window.values
+                    # 简化的有效性检查
+                    if np.isfinite(window_values).sum() / window_values.size > 0.7:
+                        X.append(window_values)
+                    else:
+                        skipped += 1
+                except:
                     skipped += 1
-                    continue
-                nan_count = np.isnan(num_values).sum()
-                total = num_values.size
-                if nan_count / total > 0.3:
-                    skipped += 1
-                    continue
-                X.append(window.values)
             X = np.array(X)
             if skipped > 0:
                 self.logger.warning(f"Skipped {skipped} invalid windows (NaN >30% or non-finite)")
@@ -713,7 +575,7 @@ class Backtester:
             self.last_trade_date = features.index[0].date()
         total_rows = len(features)
         for i, (idx, row) in enumerate(features.iterrows()):
-            if i % 100 == 0 or i == total_rows - 1:
+            if i % 500 == 0 or i == total_rows - 1:  # 减少日志频率
                 self.logger.info(f"回测进度: {i+1}/{total_rows} ({(i+1)/total_rows:.1%})")
             current_time = pd.Timestamp(idx)
             current_price = row['close']
@@ -744,27 +606,12 @@ class Backtester:
                 self.logger.info(f"状态同步: position={self.current_position}, cash={balance}")
                 portfolio_values.append(balance + (active_position.shares * current_price if active_position and active_position.position_type == 'LONG' else -active_position.shares * current_price if active_position else 0))
                 continue
-            # 在循环开始时定义
-            pyramid_modified = False
-            pyramid_rejected = False
-            original_signal = None
-            if self.pyramid_mode and 'ml_confidence' in row:
-                ml_signal = {0: 'BEAR', 1: 'NEUTRAL', 2: 'BULL'}.get(int(row['prediction']), 'NEUTRAL')
-                original_signal = self.generate_trading_signal(row, active_position, current_time)
-                pyramid_signal = self.pyramid_validator.validate_signal(row, ml_signal, row['ml_confidence'])
-               
-                # 记录信号变化
-                if pyramid_signal != original_signal:
-                    if pyramid_signal == 'HOLD':
-                        pyramid_rejected = True
-                        self.logger.debug(f"金字塔验证拒绝信号: {original_signal}")
-                    else:
-                        pyramid_modified = True
-                        self.logger.debug(f"金字塔验证修改信号: {original_signal}->{pyramid_signal}")
-               
-                signal = pyramid_signal
-            else:
-                signal = self.generate_trading_signal(row, active_position, current_time)
+            # 简化的信号生成
+            signal = self.generate_trading_signal(row, active_position, current_time)
+            
+            # 应用风险过滤
+            if signal in ['BUY', 'SHORT']:
+                signal = self.validate_signal(row, int(row['prediction']))
             if signal in ['BUY', 'SELL', 'SHORT', 'COVER'] and self.last_trade_time:
                 if (current_time - self.last_trade_time).total_seconds() / 60 < self.min_trade_interval:
                     signal = 'HOLD'
@@ -791,12 +638,7 @@ class Backtester:
                         atr=atr
                     )
                     trade_price = executed_price
-                    trade_metadata = {
-                        'pyramid_modified': pyramid_modified,
-                        'pyramid_rejected': pyramid_rejected,
-                        'original_signal': original_signal
-                    }
-                    trades.append(('BUY', idx, executed_price, shares, trade_metadata))
+                    trades.append(('BUY', idx, executed_price, shares))
                     self.last_trade_time = current_time
                     self.logger.info(f"BUY@{executed_price:.2f}, Shares:{shares}")
             elif signal == 'SELL' and active_position and active_position.position_type == 'LONG':
@@ -812,12 +654,7 @@ class Backtester:
                 self.total_slippage_cost += slippage_cost
                 self.total_commission_cost += commission
                 balance += sell_value - commission
-                trade_metadata = {
-                    'pyramid_modified': pyramid_modified,
-                    'pyramid_rejected': pyramid_rejected,
-                    'original_signal': original_signal
-                }
-                trades.append(('SELL', idx, executed_price, shares, trade_metadata))
+                trades.append(('SELL', idx, executed_price, shares))
                 self.execute_trade('SELL', executed_price, shares)
                 # 3. 记录日志（使用保存的变量）
                 self.logger.info(f"SELL@{executed_price:.2f}, Shares:{shares}")
@@ -846,12 +683,7 @@ class Backtester:
                         atr=atr
                     )
                     trade_price = executed_price
-                    trade_metadata = {
-                        'pyramid_modified': pyramid_modified,
-                        'pyramid_rejected': pyramid_rejected,
-                        'original_signal': original_signal
-                    }
-                    trades.append(('SHORT', idx, executed_price, shares, trade_metadata))
+                    trades.append(('SHORT', idx, executed_price, shares))
                     self.last_trade_time = current_time
                     self.logger.info(f"SHORT@{executed_price:.2f}, Shares:{shares}")
             elif signal == 'COVER' and active_position and active_position.position_type == 'SHORT':
@@ -867,12 +699,7 @@ class Backtester:
                 self.total_slippage_cost += slippage_cost
                 self.total_commission_cost += commission
                 balance -= buy_value + commission
-                trade_metadata = {
-                    'pyramid_modified': pyramid_modified,
-                    'pyramid_rejected': pyramid_rejected,
-                    'original_signal': original_signal
-                }
-                trades.append(('COVER', idx, executed_price, shares, trade_metadata))
+                trades.append(('COVER', idx, executed_price, shares))
                 self.execute_trade('COVER', executed_price, shares)
                 # 3. 记录日志（使用保存的变量）
                 self.logger.info(f"COVER@{executed_price:.2f}, Shares:{shares}")
@@ -905,12 +732,8 @@ class Backtester:
                         self.total_slippage_cost += slippage_cost
                         self.total_commission_cost += commission
                         balance += sell_value - commission
-                        default_metadata = {
-                            'pyramid_modified': False,
-                            'pyramid_rejected': False,
-                            'original_signal': None
-                        }
-                        trades.append(('SELL', idx, executed_price, shares, default_metadata))
+
+                        trades.append(('SELL', idx, executed_price, shares))
                         self.execute_trade('SELL', executed_price, shares, is_forced=True)
                     else:
                         executed_price = current_price * (1 + slippage)
@@ -920,12 +743,8 @@ class Backtester:
                         self.total_slippage_cost += slippage_cost
                         self.total_commission_cost += commission
                         balance -= buy_value + commission
-                        default_metadata = {
-                            'pyramid_modified': False,
-                            'pyramid_rejected': False,
-                            'original_signal': None
-                        }
-                        trades.append(('COVER', idx, executed_price, shares, default_metadata))
+
+                        trades.append(('COVER', idx, executed_price, shares))
                         self.execute_trade('COVER', executed_price, shares, is_forced=True)
                     action = 'SELL' if pos_type == 'LONG' else 'COVER'
                     self.logger.info(f"{action}@{executed_price:.2f}, Shares:{shares} (Stop Loss)")
@@ -950,12 +769,8 @@ class Backtester:
                         self.total_slippage_cost += slippage_cost
                         self.total_commission_cost += commission
                         balance += sell_value - commission
-                        default_metadata = {
-                            'pyramid_modified': False,
-                            'pyramid_rejected': False,
-                            'original_signal': None
-                        }
-                        trades.append(('SELL', idx, executed_price, shares, default_metadata))
+
+                        trades.append(('SELL', idx, executed_price, shares))
                         self.execute_trade('SELL', executed_price, shares)
                     else:
                         executed_price = current_price * (1 + slippage)
@@ -965,12 +780,8 @@ class Backtester:
                         self.total_slippage_cost += slippage_cost
                         self.total_commission_cost += commission
                         balance -= buy_value + commission
-                        default_metadata = {
-                            'pyramid_modified': False,
-                            'pyramid_rejected': False,
-                            'original_signal': None
-                        }
-                        trades.append(('COVER', idx, executed_price, shares, default_metadata))
+
+                        trades.append(('COVER', idx, executed_price, shares))
                         self.execute_trade('COVER', executed_price, shares)
                     action = 'SELL' if pos_type == 'LONG' else 'COVER'
                     self.logger.info(f"{action}@{executed_price:.2f}, Shares:{shares} (Take Profit)")
@@ -1047,12 +858,7 @@ class Backtester:
                 self.total_slippage_cost += slippage_cost
                 self.total_commission_cost += commission
                 balance += value - commission
-                default_metadata = {
-                    'pyramid_modified': False,
-                    'pyramid_rejected': False,
-                    'original_signal': None
-                }
-                trades.append(('SELL', last_row.name, executed_price, shares, default_metadata))
+                trades.append(('SELL', last_row.name, executed_price, shares))
                 self.execute_trade('SELL', executed_price, shares, is_forced=True)
                 self.logger.info(f"SELL@{executed_price:.2f}, Shares:{shares} (Final Close)")
             else:
@@ -1063,12 +869,7 @@ class Backtester:
                 self.total_slippage_cost += slippage_cost
                 self.total_commission_cost += commission
                 balance -= value + commission
-                default_metadata = {
-                    'pyramid_modified': False,
-                    'pyramid_rejected': False,
-                    'original_signal': None
-                }
-                trades.append(('COVER', last_row.name, executed_price, shares, default_metadata))
+                trades.append(('COVER', last_row.name, executed_price, shares))
                 self.execute_trade('COVER', executed_price, shares, is_forced=True)
                 self.logger.info(f"COVER@{executed_price:.2f}, Shares:{shares} (Final Close)")
             active_position = None
@@ -1112,46 +913,7 @@ class Backtester:
                 return 'SHORT'
         return 'HOLD'
 
-    def calculate_max_drawdown(self, portfolio_values):
-        peak = portfolio_values.cummax()
-        drawdown = (portfolio_values - peak) / peak
-        max_dd = drawdown.min()
-        if max_dd == 0:
-            return {"value": 0.0, "duration_days": 0}
-        max_dd_end = drawdown.idxmin()
-        duration_days = (max_dd_end - portfolio_values[:max_dd_end].idxmax()).days
-        return {"value": -max_dd, "duration_days": duration_days}
 
-    def calculate_performance_metrics(self, results):
-        returns = results['portfolio_value'].pct_change().dropna()
-        annual_volatility = returns.std() * np.sqrt(252)
-        sharpe = returns.mean() / returns.std() * np.sqrt(252) if returns.std() != 0 else 0.0
-        downside_std = returns[returns < 0].std() * np.sqrt(252) if len(returns[returns < 0]) > 0 else 0
-        sortino = returns.mean() / downside_std * np.sqrt(252) if downside_std != 0 else 0
-        peak = results['portfolio_value'].cummax()
-        drawdown = (results['portfolio_value'] - peak) / peak
-        max_dd = drawdown.min()
-        max_dd_end = drawdown.idxmin()
-        peak_value = peak.loc[:max_dd_end].max()
-        recovery_index = results.loc[max_dd_end:, 'portfolio_value']
-        recovery_time = (recovery_index[recovery_index >= peak_value].index[0] - max_dd_end).days if recovery_index[recovery_index >= peak_value].size > 0 else None
-        start_value, end_value = results['portfolio_value'].iloc[0], results['portfolio_value'].iloc[-1]
-        total_days = (results.index[-1] - results.index[0]).days
-        cagr = (end_value / start_value) ** (252 / total_days) - 1 if total_days > 0 and start_value > 0 else 0.0
-        total_return = (end_value - start_value) / start_value
-        profit = sum(returns[returns > 0]) if len(returns[returns > 0]) > 0 else 0
-        loss = -sum(returns[returns < 0]) if len(returns[returns < 0]) > 0 else 0
-        profit_factor = profit / loss if loss != 0 else float('inf')
-        return {
-            "sharpe_ratio": sharpe,
-            "sortino_ratio": sortino,
-            "max_drawdown": {"value": -max_dd, "duration_days": (max_dd_end - results.loc[:max_dd_end, 'portfolio_value'].idxmax()).days},
-            "annual_volatility": annual_volatility,
-            "cagr": cagr,
-            "total_return": total_return,
-            "profit_factor": profit_factor,
-            "max_drawdown_recovery_days": recovery_time
-        }
 
     def plot_results(self, results):
         try:
@@ -1190,8 +952,7 @@ class Backtester:
                     predictions = np.ones(len(processed_features))
                     confidences = np.zeros(len(processed_features))
            
-            # 添加置信度到特征数据
-            processed_features['ml_confidence'] = confidences
+            # 简化处理
             if len(predictions) != len(processed_features):
                 min_length = min(len(predictions), len(processed_features))
                 self.logger.warning(f"预测结果与特征数据长度不一致，调整到最小长度: {min_length}")
@@ -1221,103 +982,118 @@ class Backtester:
             self.logger.info(f"Backtest complete, duration: {duration}")
 
     def generate_report(self, results, trades, start_time, features):
-        trade_pairs = []
-        open_positions = {'LONG': [], 'SHORT': []}
-        for trade in trades:
-            action, timestamp, price, shares, metadata = trade # 正确解包5个元素
-           
-            if action in ['BUY', 'SHORT']:
-                # ...保持原有逻辑不变
-                commission = max(price * shares * self.commission_rate, 1)
-                pos_type = 'LONG' if action == 'BUY' else 'SHORT'
-                open_positions[pos_type].append({'timestamp': timestamp, 'price': price, 'shares': shares, 'commission': commission})
-            elif action in ['SELL', 'COVER']:
-                # ...保持原有逻辑不变
-                pos_type = 'LONG' if action == 'SELL' else 'SHORT'
-                shares_to_close = shares
-                while shares_to_close > 0 and open_positions[pos_type]:
-                    pos = open_positions[pos_type][0]
-                    shares_from_pos = min(pos['shares'], shares_to_close)
-                    buy_commission = pos['commission'] * (shares_from_pos / pos['shares'])
-                    sell_commission = max(price * shares_from_pos * self.commission_rate, 1)
-                    profit = (price - pos['price']) * shares_from_pos * (1 if pos_type == 'LONG' else -1) - (buy_commission + sell_commission)
-                    trade_pairs.append({
-                        'entry': (pos['timestamp'], pos['price'], shares_from_pos),
-                        'exit': (timestamp, price, shares_from_pos),
-                        'profit': profit,
-                        'holding_period': (timestamp - pos['timestamp']).total_seconds() / 3600
+        """生成简化的回测报告，符合预期输出格式"""
+        try:
+            # 计算交易对
+            trade_pairs = []
+            open_positions = {'LONG': [], 'SHORT': []}
+            
+            for trade in trades:
+                action, timestamp, price, shares = trade[:4]  # 只取前4个元素，忽略metadata
+               
+                if action in ['BUY', 'SHORT']:
+                    commission = max(price * shares * self.commission_rate, 1)
+                    pos_type = 'LONG' if action == 'BUY' else 'SHORT'
+                    open_positions[pos_type].append({
+                        'timestamp': timestamp, 
+                        'price': price, 
+                        'shares': shares, 
+                        'commission': commission
                     })
-                    shares_to_close -= shares_from_pos
-                    pos['shares'] -= shares_from_pos
-                    if pos['shares'] == 0:
-                        open_positions[pos_type].pop(0)
-   
-        # ...方法其余部分保持不变
-        for pos_type in ['LONG', 'SHORT']:
-            if open_positions[pos_type]:
-                slippage = self.calculate_slippage(features['close'].iloc[-1], row=features.iloc[-1])
-                multiplier = (1 - slippage) if pos_type == 'LONG' else (1 + slippage)
-                final_price = features['close'].iloc[-1] * multiplier
-                for pos in open_positions[pos_type]:
-                    value = final_price * pos['shares']
-                    commission = max(value * self.commission_rate, 1)
-                    profit = (final_price - pos['price']) * pos['shares'] * (1 if pos_type == 'LONG' else -1) - (pos['commission'] + commission)
-                    trade_pairs.append({
-                        'entry': (pos['timestamp'], pos['price'], pos['shares']),
-                        'exit': (results.index[-1], final_price, pos['shares']),
-                        'profit': profit,
-                        'holding_period': (results.index[-1] - pos['timestamp']).total_seconds() / 3600
-                    })
+                elif action in ['SELL', 'COVER']:
+                    pos_type = 'LONG' if action == 'SELL' else 'SHORT'
+                    shares_to_close = shares
+                    
+                    while shares_to_close > 0 and open_positions[pos_type]:
+                        pos = open_positions[pos_type][0]
+                        shares_from_pos = min(pos['shares'], shares_to_close)
+                        buy_commission = pos['commission'] * (shares_from_pos / pos['shares'])
+                        sell_commission = max(price * shares_from_pos * self.commission_rate, 1)
+                        
+                        profit = (price - pos['price']) * shares_from_pos * (1 if pos_type == 'LONG' else -1) - (buy_commission + sell_commission)
+                        trade_pairs.append({
+                            'entry': (pos['timestamp'], pos['price'], shares_from_pos),
+                            'exit': (timestamp, price, shares_from_pos),
+                            'profit': profit,
+                            'holding_period': (timestamp - pos['timestamp']).total_seconds() / 3600
+                        })
+                        
+                        shares_to_close -= shares_from_pos
+                        pos['shares'] -= shares_from_pos
+                        if pos['shares'] == 0:
+                            open_positions[pos_type].pop(0)
 
-        winning_trades = sum(1 for pair in trade_pairs if pair['profit'] > 0)
-        total_trades = len(trade_pairs)
-        final_value = results['portfolio_value'].iloc[-1]
-        initial_balance = 50000
-        avg_profit = np.mean([p['profit'] for p in trade_pairs if p['profit'] > 0]) if any(p['profit'] > 0 for p in trade_pairs) else 0
-        avg_loss = np.mean([p['profit'] for p in trade_pairs if p['profit'] < 0]) if any(p['profit'] < 0 for p in trade_pairs) else 0
-        profit_loss_ratio = abs(avg_profit / avg_loss) if avg_loss != 0 else float('inf')
-        total_days = (results.index[-1] - results.index[0]).days
-        annual_trade_freq = total_trades / (total_days / 252) if total_days > 0 else 0
-        report = {
-            "start_time": start_time.strftime('%Y-%m-%d %H:%M:%S'),
-            "end_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            "initial_balance": initial_balance,
-            "final_balance": final_value,
-            "return_percentage": (final_value - initial_balance) / initial_balance * 100,
-            "total_trades": total_trades,
-            "winning_trades": winning_trades,
-            "win_rate": winning_trades / total_trades if total_trades > 0 else 0,
-            "performance_metrics": self.calculate_performance_metrics(results),
-            "average_win": avg_profit,
-            "average_loss": avg_loss,
-            "profit_loss_ratio": profit_loss_ratio,
-            "annual_trade_frequency": annual_trade_freq,
-            "total_slippage_cost": self.total_slippage_cost,
-            "total_commission_cost": self.total_commission_cost
-        }
-        # 在report字典中添加：
-        pyramid_impact = {
-            "signals_modified": 0,
-            "signals_rejected": 0,
-            "modified_gain": 0.0
-        }
-       
-        # 关联交易记录与金字塔效果
-        for trade in trades:
-            action, timestamp, price, shares, metadata = trade # 修改为包含元数据
-            if metadata.get('pyramid_modified'):
-                pyramid_impact["signals_modified"] += 1
-                # 查找对应交易对的盈利
-                for pair in trade_pairs:
-                    if pair['entry'][0] == timestamp or pair['exit'][0] == timestamp:
-                        if pair['profit'] > 0:
-                            pyramid_impact["modified_gain"] += pair['profit']
-           
-            if metadata.get('pyramid_rejected'):
-                pyramid_impact["signals_rejected"] += 1
-       
-        report["pyramid_impact"] = pyramid_impact
-        return report
+            # 处理未平仓的仓位
+            if any(open_positions.values()):
+                final_price = features['close'].iloc[-1]
+                for pos_type in ['LONG', 'SHORT']:
+                    for pos in open_positions[pos_type]:
+                        profit = (final_price - pos['price']) * pos['shares'] * (1 if pos_type == 'LONG' else -1) - pos['commission']
+                        trade_pairs.append({
+                            'entry': (pos['timestamp'], pos['price'], pos['shares']),
+                            'exit': (results.index[-1], final_price, pos['shares']),
+                            'profit': profit,
+                            'holding_period': (results.index[-1] - pos['timestamp']).total_seconds() / 3600
+                        })
+
+            # 计算关键指标
+            winning_trades = sum(1 for pair in trade_pairs if pair['profit'] > 0)
+            total_trades = len(trade_pairs)
+            win_rate = winning_trades / total_trades if total_trades > 0 else 0.0
+            
+            # 计算年化收益率
+            final_value = results['portfolio_value'].iloc[-1]
+            initial_balance = results['portfolio_value'].iloc[0]
+            total_days = (results.index[-1] - results.index[0]).days
+            
+            if total_days > 0 and initial_balance > 0:
+                annual_return = (final_value / initial_balance) ** (252 / total_days) - 1
+            else:
+                annual_return = 0.0
+            
+            # 计算最大回撤
+            portfolio_values = results['portfolio_value']
+            peak = portfolio_values.expanding().max()
+            drawdown = (portfolio_values - peak) / peak
+            max_drawdown = abs(drawdown.min())
+            
+            # 计算夏普比率
+            returns = results['portfolio_value'].pct_change().dropna()
+            if len(returns) > 0 and returns.std() > 0:
+                sharpe_ratio = returns.mean() / returns.std() * np.sqrt(252)
+            else:
+                sharpe_ratio = 0.0
+            
+            # 返回符合预期格式的报告
+            return {
+                'annual_return': round(annual_return, 4),
+                'max_drawdown': round(max_drawdown, 4), 
+                'win_rate': round(win_rate, 4),
+                'sharpe_ratio': round(sharpe_ratio, 4),
+                
+                # 额外的详细信息（可选）
+                'details': {
+                    'total_trades': total_trades,
+                    'winning_trades': winning_trades,
+                    'final_value': final_value,
+                    'initial_balance': initial_balance,
+                    'total_return': (final_value - initial_balance) / initial_balance,
+                    'total_days': total_days,
+                    'start_time': start_time.strftime('%Y-%m-%d %H:%M:%S'),
+                    'end_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    'total_slippage_cost': self.total_slippage_cost,
+                    'total_commission_cost': self.total_commission_cost
+                }
+            }
+        except Exception as e:
+            self.logger.error(f"生成报告时出错: {str(e)}")
+            return {
+                'annual_return': 0.0,
+                'max_drawdown': 0.0,
+                'win_rate': 0.0,
+                'sharpe_ratio': 0.0,
+                'error': str(e)
+            }
 
 if __name__ == "__main__":
     logger = setup_logging()
@@ -1329,7 +1105,26 @@ if __name__ == "__main__":
             logger=logger
         )
         report = backtester.run_backtest()
-        logger.info(f"Backtest report:\n{json.dumps(report, indent=2)}")
+        
+        # 显示主要结果
+        logger.info("=" * 50)
+        logger.info("回测结果摘要:")
+        logger.info("=" * 50)
+        logger.info(f"年化收益率: {report['annual_return']:.2%}")
+        logger.info(f"最大回撤: {report['max_drawdown']:.2%}")
+        logger.info(f"胜率: {report['win_rate']:.2%}")
+        logger.info(f"夏普比率: {report['sharpe_ratio']:.2f}")
+        logger.info("=" * 50)
+        
+        # 显示详细信息（如果需要）
+        if 'details' in report:
+            details = report['details']
+            logger.info(f"总交易次数: {details['total_trades']}")
+            logger.info(f"胜利交易: {details['winning_trades']}")
+            logger.info(f"最终价值: ${details['final_value']:.2f}")
+            logger.info(f"总回报: {details['total_return']:.2%}")
+        
+        logger.info(f"\n完整报告:\n{json.dumps(report, indent=2)}")
     except Exception as e:
         logger.error(f"Backtest execution failed: {str(e)}")
         sys.exit(1)
