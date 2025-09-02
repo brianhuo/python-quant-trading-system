@@ -310,5 +310,252 @@
       "auc": 0.0
     },
     "description": "自动训练的lightgbm模型"
+  },
+  "lightgbm_20250902_104215_d7a85c5b": {
+    "version": "2025.09.02.104215",
+    "model_type": "lightgbm",
+    "created_at": "2025-09-02T10:42:15.757471",
+    "metrics": {
+      "accuracy": 0.8472222222222222,
+      "f1_score": 0.8466376829831948,
+      "precision": 0.8468310429247929,
+      "recall": 0.8472222222222222,
+      "auc": 0.9573070910041381
+    },
+    "description": "自动训练的lightgbm模型"
+  },
+  "random_forest_20250902_104216_13a866f8": {
+    "version": "2025.09.02.104216",
+    "model_type": "random_forest",
+    "created_at": "2025-09-02T10:42:16.987522",
+    "metrics": {
+      "accuracy": 0.8541666666666666,
+      "f1_score": 0.8541532733311903,
+      "precision": 0.8542824074074074,
+      "recall": 0.8541666666666666,
+      "auc": 0.9631413848873233
+    },
+    "description": "自动训练的random_forest模型"
+  },
+  "lightgbm_20250902_104218_91e05b86": {
+    "version": "2025.09.02.104218",
+    "model_type": "lightgbm",
+    "created_at": "2025-09-02T10:42:18.618666",
+    "metrics": {
+      "accuracy": 0.7951388888888888,
+      "f1_score": 0.7930003113066062,
+      "precision": 0.7942455041432138,
+      "recall": 0.7951388888888888,
+      "auc": 0.943441996450712
+    },
+    "description": "自动训练的lightgbm模型"
+  },
+  "lightgbm_20250902_104220_d83d4024": {
+    "version": "2025.09.02.104220",
+    "model_type": "lightgbm",
+    "created_at": "2025-09-02T10:42:20.231729",
+    "metrics": {
+      "accuracy": 0.7951388888888888,
+      "f1_score": 0.7930003113066062,
+      "precision": 0.7942455041432138,
+      "recall": 0.7951388888888888,
+      "auc": 0.943441996450712
+    },
+    "description": "自动训练的lightgbm模型"
+  },
+  "lightgbm_20250902_104220_c9376cbe": {
+    "version": "2025.09.02.104220",
+    "model_type": "lightgbm",
+    "created_at": "2025-09-02T10:42:20.673578",
+    "metrics": {
+      "accuracy": 0.8229166666666666,
+      "f1_score": 0.8217279024340094,
+      "precision": 0.8232737080734592,
+      "recall": 0.8229166666666666,
+      "auc": 0.9426998101738074
+    },
+    "description": "自动训练的lightgbm模型"
+  },
+  "lightgbm_20250902_104223_982ddca7": {
+    "version": "2025.09.02.104223",
+    "model_type": "lightgbm",
+    "created_at": "2025-09-02T10:42:23.418736",
+    "metrics": {
+      "accuracy": 0.8194444444444444,
+      "f1_score": 0.8190883177471019,
+      "precision": 0.8190595303362573,
+      "recall": 0.8194444444444444,
+      "auc": 0.9453462453203856
+    },
+    "description": "自动训练的lightgbm模型"
+  },
+  "lightgbm_20250902_104225_d7a85c5b": {
+    "version": "2025.09.02.104225",
+    "model_type": "lightgbm",
+    "created_at": "2025-09-02T10:42:25.428781",
+    "metrics": {
+      "accuracy": 0.8472222222222222,
+      "f1_score": 0.8466376829831948,
+      "precision": 0.8468310429247929,
+      "recall": 0.8472222222222222,
+      "auc": 0.9573070910041381
+    },
+    "description": "自动训练的lightgbm模型"
+  },
+  "random_forest_20250902_104227_13a866f8": {
+    "version": "2025.09.02.104227",
+    "model_type": "random_forest",
+    "created_at": "2025-09-02T10:42:27.876011",
+    "metrics": {
+      "accuracy": 0.8541666666666666,
+      "f1_score": 0.8541532733311903,
+      "precision": 0.8542824074074074,
+      "recall": 0.8541666666666666,
+      "auc": 0.9631413848873233
+    },
+    "description": "自动训练的random_forest模型"
+  },
+  "xgboost_20250902_104325_ad83385a": {
+    "version": "2025.09.02.104325",
+    "model_type": "xgboost",
+    "created_at": "2025-09-02T10:43:25.988561",
+    "metrics": {
+      "accuracy": 0.8263888888888888,
+      "f1_score": 0.8263412236468409,
+      "precision": 0.8295657158670857,
+      "recall": 0.8263888888888888,
+      "auc": 0.9504666956653417
+    },
+    "description": "自动训练的xgboost模型"
+  },
+  "lightgbm_20250902_104342_d7a85c5b": {
+    "version": "2025.09.02.104342",
+    "model_type": "lightgbm",
+    "created_at": "2025-09-02T10:43:42.013823",
+    "metrics": {
+      "accuracy": 0.8472222222222222,
+      "f1_score": 0.8466376829831948,
+      "precision": 0.8468310429247929,
+      "recall": 0.8472222222222222,
+      "auc": 0.9573070910041381
+    },
+    "description": "自动训练的lightgbm模型"
+  },
+  "random_forest_20250902_104343_13a866f8": {
+    "version": "2025.09.02.104343",
+    "model_type": "random_forest",
+    "created_at": "2025-09-02T10:43:43.307442",
+    "metrics": {
+      "accuracy": 0.8506944444444444,
+      "f1_score": 0.8508398614245684,
+      "precision": 0.8510118611307451,
+      "recall": 0.8506944444444444,
+      "auc": 0.9626482375602446
+    },
+    "description": "自动训练的random_forest模型"
+  },
+  "lightgbm_20250902_104344_91e05b86": {
+    "version": "2025.09.02.104344",
+    "model_type": "lightgbm",
+    "created_at": "2025-09-02T10:43:44.960504",
+    "metrics": {
+      "accuracy": 0.7951388888888888,
+      "f1_score": 0.7930003113066062,
+      "precision": 0.7942455041432138,
+      "recall": 0.7951388888888888,
+      "auc": 0.943441996450712
+    },
+    "description": "自动训练的lightgbm模型"
+  },
+  "lightgbm_20250902_104347_d83d4024": {
+    "version": "2025.09.02.104347",
+    "model_type": "lightgbm",
+    "created_at": "2025-09-02T10:43:47.095187",
+    "metrics": {
+      "accuracy": 0.7951388888888888,
+      "f1_score": 0.7930003113066062,
+      "precision": 0.7942455041432138,
+      "recall": 0.7951388888888888,
+      "auc": 0.943441996450712
+    },
+    "description": "自动训练的lightgbm模型"
+  },
+  "lightgbm_20250902_104347_c9376cbe": {
+    "version": "2025.09.02.104347",
+    "model_type": "lightgbm",
+    "created_at": "2025-09-02T10:43:47.708774",
+    "metrics": {
+      "accuracy": 0.8229166666666666,
+      "f1_score": 0.8217279024340094,
+      "precision": 0.8232737080734592,
+      "recall": 0.8229166666666666,
+      "auc": 0.9426998101738074
+    },
+    "description": "自动训练的lightgbm模型"
+  },
+  "lightgbm_20250902_104351_982ddca7": {
+    "version": "2025.09.02.104351",
+    "model_type": "lightgbm",
+    "created_at": "2025-09-02T10:43:51.667340",
+    "metrics": {
+      "accuracy": 0.8194444444444444,
+      "f1_score": 0.8190883177471019,
+      "precision": 0.8190595303362573,
+      "recall": 0.8194444444444444,
+      "auc": 0.9453462453203856
+    },
+    "description": "自动训练的lightgbm模型"
+  },
+  "lightgbm_20250902_104353_d7a85c5b": {
+    "version": "2025.09.02.104353",
+    "model_type": "lightgbm",
+    "created_at": "2025-09-02T10:43:53.880003",
+    "metrics": {
+      "accuracy": 0.8472222222222222,
+      "f1_score": 0.8466376829831948,
+      "precision": 0.8468310429247929,
+      "recall": 0.8472222222222222,
+      "auc": 0.9573070910041381
+    },
+    "description": "自动训练的lightgbm模型"
+  },
+  "xgboost_20250902_104355_fd323fcf": {
+    "version": "2025.09.02.104355",
+    "model_type": "xgboost",
+    "created_at": "2025-09-02T10:43:55.951842",
+    "metrics": {
+      "accuracy": 0.8402777777777778,
+      "f1_score": 0.8409561313868301,
+      "precision": 0.8429396325202233,
+      "recall": 0.8402777777777778,
+      "auc": 0.9453902409395152
+    },
+    "description": "自动训练的xgboost模型"
+  },
+  "random_forest_20250902_104357_13a866f8": {
+    "version": "2025.09.02.104357",
+    "model_type": "random_forest",
+    "created_at": "2025-09-02T10:43:57.749973",
+    "metrics": {
+      "accuracy": 0.8506944444444444,
+      "f1_score": 0.8508398614245684,
+      "precision": 0.8510118611307451,
+      "recall": 0.8506944444444444,
+      "auc": 0.9626482375602446
+    },
+    "description": "自动训练的random_forest模型"
+  },
+  "lightgbm_20250902_104402_ea4aeb0d": {
+    "version": "2025.09.02.104402",
+    "model_type": "lightgbm",
+    "created_at": "2025-09-02T10:44:02.992214",
+    "metrics": {
+      "accuracy": 0.8159722222222222,
+      "f1_score": 0.8155751089408635,
+      "precision": 0.8156519267188,
+      "recall": 0.8159722222222222,
+      "auc": 0.9398731984116312
+    },
+    "description": "自动训练的lightgbm模型"
   }
 }
