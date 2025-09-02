@@ -51,5 +51,3 @@ echo ""
 echo "🎯 提示: 开发工作请继续在 /Users/richard/python/ 进行"
 echo "📱 同步文件夹可用于iMac和MacBook之间的数据传输"
 
-
-
