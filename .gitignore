@@ -1,7 +1,13 @@
-# Python 字节码和缓存文件
+# Python虚拟环境
+venv/
+env/
+ENV/
+
+# Python编译文件
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
 
 # 分发/打包
 .Python
@@ -17,58 +23,50 @@ parts/
 sdist/
 var/
 wheels/
+pip-wheel-metadata/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
 
-# 虚拟环境目录
-venv/
-.venv/
-env/
-.env/
-general_env/
-ibkr_env/
-scripts/ibkr_env/
-.whisper_env/
+# PyInstaller
+*.manifest
+*.spec
 
-# 环境变量文件（包含敏感信息）
+# 单元测试
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# 环境变量
 .env
-.env.local
-.env.*.local
+.venv
 
-# 日志文件
-*.log
-logs/
-scripts/logs/
-
-# 数据缓存文件
-cache/
-scripts/cache/
-*.csv
-*.h5
-*.feather
-*.parquet
-
-# 机器学习模型和训练信息
-catboost_info/
-scripts/catboost_info/
-*.pkl
-*.joblib
-*.model
-
-# 图表和报告文件
-log_charts/
-scripts/log_charts/
-*.png
-*.jpg
-*.pdf
-*.html
-
-# IDE和编辑器文件
-.cursor/
-*.cursorworkspace
-.vscode/
+# IDE
+.vscode/launch.json
 .idea/
 *.swp
 *.swo
@@ -83,39 +81,15 @@ scripts/log_charts/
 ehthumbs.db
 Thumbs.db
 
-# Jupyter Notebook
-.ipynb_checkpoints
+# 项目特定
+logs/
+cache/
+*.log
+model_versions/
+enhanced_preprocessed_data/
+*.pkl
+*.joblib
 
-# pyenv
-.python-version
-
-# 临时文件
-*.tmp
-*.temp
-
-# 配置文件备份
-*.bak
-*.backup
-
-# 测试覆盖率报告
-htmlcov/
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
-
-# 文档构建
-docs/_build/
-
-# PyBuilder
-target/
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
+# 配置文件（可能包含敏感信息）
+config.local.yaml
+.config_key

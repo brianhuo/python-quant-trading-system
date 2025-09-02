@@ -207,19 +207,29 @@ class ModelFactory:
     @staticmethod
     def _create_lightgbm(config: ModelConfig):
         """创建LightGBM模型"""
+        # 避免参数重复，从lgb_params中移除可能冲突的参数
+        lgb_params = config.lgb_params.copy()
+        lgb_params.pop('n_estimators', None)
+        lgb_params.pop('random_state', None)
+        
         return lgb.LGBMClassifier(
             n_estimators=config.n_estimators,
             random_state=config.random_state,
-            **config.lgb_params
+            **lgb_params
         )
     
     @staticmethod
     def _create_xgboost(config: ModelConfig):
         """创建XGBoost模型"""
+        # 避免参数重复，从xgb_params中移除可能冲突的参数
+        xgb_params = config.xgb_params.copy()
+        xgb_params.pop('n_estimators', None)
+        xgb_params.pop('random_state', None)
+        
         return xgb.XGBClassifier(
             n_estimators=config.n_estimators,
             random_state=config.random_state,
-            **config.xgb_params
+            **xgb_params
         )
     
     @staticmethod
@@ -824,11 +834,23 @@ class EnhancedModelTrainer:
     
     def _train_final_model(self, X_train: np.ndarray, y_train: np.ndarray, params: Dict) -> Any:
         """训练最终模型"""
-        # 更新配置参数
+        # 更新配置参数，避免冲突
         if self.config.model_type == 'lightgbm':
-            self.config.lgb_params.update(params)
+            # 过滤掉可能冲突的参数
+            filtered_params = {k: v for k, v in params.items() 
+                             if k not in ['n_estimators', 'random_state']}
+            self.config.lgb_params.update(filtered_params)
+            # 更新顶级参数
+            if 'n_estimators' in params:
+                self.config.n_estimators = params['n_estimators']
         elif self.config.model_type == 'xgboost':
-            self.config.xgb_params.update(params)
+            # 过滤掉可能冲突的参数
+            filtered_params = {k: v for k, v in params.items() 
+                             if k not in ['n_estimators', 'random_state']}
+            self.config.xgb_params.update(filtered_params)
+            # 更新顶级参数
+            if 'n_estimators' in params:
+                self.config.n_estimators = params['n_estimators']
         
         # 创建并训练模型
         model = ModelFactory.create_model(self.config.model_type, self.config)
