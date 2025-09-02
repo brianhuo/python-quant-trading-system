@@ -92,4 +92,8 @@ enhanced_preprocessed_data/
 
 # 配置文件（可能包含敏感信息）
 config.local.yaml
-.config_key
+.config_key# 忽略VS Code配置目录
+.vscode/
+
+# 忽略NumPy数据文件
+*.npy
